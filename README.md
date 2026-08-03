@@ -125,7 +125,7 @@ The server will start listening on port `3000`.
 1. **Global Logger Middleware**: Logs request method, path, and ISO timestamp (e.g. `GET /tasks - 2026-08-03T10:30:00Z`).
 2. **Content-Type Validation**: Rejects `POST` and `PUT` requests without `Content-Type: application/json` header with `415 Unsupported Media Type`.
 3. **Route Validation**: Verifies that `:id` is a valid positive integer, returning `400 Bad Request` if invalid.
-4. **404 Not Found Handling**: Returns `404 Not Found` with `{"message": "Route Not Found"}` for unmatched routes.
+4. **404 Not Found Handling**: Returns `404 Not Found` with a detailed JSON block containing success, status, message, HTTP method, path, and request timestamp.
 5. **Global Error Handling**: Intercepts unexpected errors and returns `500 Internal Server Error` with `{"error": "Something went wrong"}`.
 
 ## Postman Examples
