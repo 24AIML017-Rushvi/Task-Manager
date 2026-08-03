@@ -1,0 +1,12 @@
+{
+  "name": "task-manager-api-24aiml017",
+  "version": "1.0.0",
+  "description": "Practical 4 - RESTful Task Manager API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
