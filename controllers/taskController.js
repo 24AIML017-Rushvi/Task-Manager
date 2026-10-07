@@ -1,122 +1,107 @@
-// In-memory database of tasks
-let tasks = [
-  { id: 1, title: 'Complete Practical 4', completed: false }
-];
-
-// Helper to generate the next auto-incrementing ID
-let nextId = 2;
+const Task = require('../models/Task');
 
 /**
  * GET /tasks
- * Return all tasks.
+ * Return all tasks from MongoDB.
  */
-const getTasks = (req, res) => {
-  res.status(200).json(tasks);
+const getTasks = async (req, res, next) => {
+  try {
+    const tasks = await Task.find();
+    res.status(200).json(tasks);
+  } catch (err) {
+    next(err);
+  }
 };
 
 /**
  * GET /tasks/:id
- * Return one task by ID.
+ * Return one task by MongoDB document ID.
  */
-const getTaskById = (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const task = tasks.find(t => t.id === id);
-  if (!task) {
-    return res.status(404).json({
-      error: 'Task not found'
-    });
+const getTaskById = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({
+        message: 'Task not found'
+      });
+    }
+    res.status(200).json(task);
+  } catch (err) {
+    next(err);
   }
-  res.status(200).json(task);
 };
 
 /**
  * POST /tasks
- * Create a new task.
+ * Create a new task in MongoDB.
  */
-const createTask = (req, res) => {
-  const { title } = req.body;
-  
-  if (!title || typeof title !== 'string' || title.trim() === '') {
-    return res.status(400).json({
-      error: 'Bad Request. Title is required and must be a non-empty string.'
-    });
+const createTask = async (req, res, next) => {
+  try {
+    const newTask = await Task.create(req.body);
+    res.status(201).json(newTask);
+  } catch (err) {
+    next(err);
   }
-
-  const newTask = {
-    id: nextId++,
-    title: title.trim(),
-    completed: false
-  };
-
-  tasks.push(newTask);
-  res.status(201).json(newTask);
 };
 
 /**
  * PUT /tasks/:id
- * Update a task's title and/or completed status.
+ * Update a task's fields in MongoDB.
  */
-const updateTask = (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const taskIndex = tasks.findIndex(t => t.id === id);
+const updateTask = async (req, res, next) => {
+  try {
+    const { title, description, completed, priority } = req.body;
 
-  if (taskIndex === -1) {
-    return res.status(404).json({
-      error: 'Task not found'
-    });
+    // Ensure at least one update field was provided
+    if (
+      title === undefined &&
+      description === undefined &&
+      completed === undefined &&
+      priority === undefined
+    ) {
+      return res.status(400).json({
+        error: 'Bad Request. At least one field must be provided for update.'
+      });
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedTask) {
+      return res.status(404).json({
+        message: 'Task not found'
+      });
+    }
+
+    res.status(200).json(updatedTask);
+  } catch (err) {
+    next(err);
   }
-
-  const { title, completed } = req.body;
-
-  // Validate incoming fields if they are provided
-  if (title !== undefined && (typeof title !== 'string' || title.trim() === '')) {
-    return res.status(400).json({
-      error: 'Bad Request. Title must be a non-empty string.'
-    });
-  }
-
-  if (completed !== undefined && typeof completed !== 'boolean') {
-    return res.status(400).json({
-      error: 'Bad Request. Completed must be a boolean.'
-    });
-  }
-
-  // Ensure at least one update parameter was provided
-  if (title === undefined && completed === undefined) {
-    return res.status(400).json({
-      error: 'Bad Request. At least one field (title or completed) must be provided for update.'
-    });
-  }
-
-  // Update properties
-  if (title !== undefined) {
-    tasks[taskIndex].title = title.trim();
-  }
-  if (completed !== undefined) {
-    tasks[taskIndex].completed = completed;
-  }
-
-  res.status(200).json(tasks[taskIndex]);
 };
 
 /**
  * DELETE /tasks/:id
- * Delete a task.
+ * Delete a task from MongoDB.
  */
-const deleteTask = (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  const taskIndex = tasks.findIndex(t => t.id === id);
+const deleteTask = async (req, res, next) => {
+  try {
+    const deletedTask = await Task.findByIdAndDelete(req.params.id);
 
-  if (taskIndex === -1) {
-    return res.status(404).json({
-      error: 'Task not found'
+    if (!deletedTask) {
+      return res.status(404).json({
+        message: 'Task not found'
+      });
+    }
+
+    res.status(200).json({
+      message: 'Task deleted successfully'
     });
+  } catch (err) {
+    next(err);
   }
-
-  tasks.splice(taskIndex, 1);
-  res.status(200).json({
-    message: 'Task deleted successfully'
-  });
 };
 
 module.exports = {

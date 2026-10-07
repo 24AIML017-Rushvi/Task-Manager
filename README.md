@@ -1,155 +1,237 @@
-# Task Manager API (Practical 4)
+# Task Manager REST API (Practical 5)
 
-A complete, working RESTful API for task management built using Node.js and Express. It uses an MVC architecture and stores data in-memory (resets on server restart).
+A complete, beginner-friendly RESTful API for task management built using Node.js, Express, MongoDB, and Mongoose ODM. This practical extends Practical 4 by replacing in-memory data storage with persistent database storage in MongoDB using Mongoose schemas and model validations.
+
+## Architecture
+
+```text
+Client / Postman
+       ↓
+ Express Server
+       ↓
+  Mongoose ODM
+       ↓
+    MongoDB
+       ↓
+tasks collection
+```
 
 ## Project Structure
 
 ```text
 task-manager-api-24AIML017/
 │
-├── package.json
-├── server.js
-├── .gitignore
-├── README.md
-│
-├── routes/
-│   └── tasks.js
+├── models/
+│   └── Task.js
 │
 ├── controllers/
 │   └── taskController.js
 │
 ├── middleware/
-│   ├── logger.js
-│   ├── validateJson.js
-│   ├── validateTaskId.js
 │   ├── errorHandler.js
-│   └── notFound.js
+│   ├── logger.js
+│   ├── notFound.js
+│   ├── validateJson.js
+│   └── validateTaskId.js
+│
+├── routes/
+│   └── tasks.js
+│
+├── .env
+├── .env.example
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── README.md
+└── server.js
 ```
 
-## Installation
+## Features & Schema Design
 
-Run the following command to install the required dependencies (Express):
-```bash
-npm install
-```
+### Mongoose Model (`models/Task.js`)
+* `title`: String, required with custom error message (`Title is required`).
+* `description`: String, optional.
+* `completed`: Boolean, default: `false`.
+* `createdAt`: Date, default: `Date.now`.
+* `priority`: String, enum: `['low', 'medium', 'high']`, default: `'medium'`.
+* **Pre-save Hook**: Automatically trims leading and trailing whitespace from the `title` before saving into MongoDB.
 
-## Run
+---
 
-To start the server, run:
-```bash
-npm start
-```
-The server will start listening on port `3000`.
+## Installation & Setup
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Environment Configuration**:
+   Create a `.env` file based on `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+   Configure your MongoDB connection string in `.env`:
+   ```env
+   PORT=3000
+   MONGO_URI=mongodb://127.0.0.1:27017/taskmanager
+   ```
+
+3. **Start MongoDB Server**:
+   Ensure MongoDB is running locally on port `27017` or use MongoDB Atlas.
+
+4. **Run the Application**:
+   ```bash
+   npm start
+   ```
+   The server will start on port `3000` and output:
+   ```text
+   MongoDB connected
+   Server is running on port 3000
+   ```
+
+---
 
 ## API Endpoints
 
 ### 1. Get All Tasks
-- **URL**: `GET /tasks`
-- **Headers**: None
-- **Status Code**: `200 OK`
-- **Response**:
+* **Method**: `GET`
+* **URL**: `/tasks`
+* **Status**: `200 OK`
+* **Response**:
   ```json
   [
     {
-      "id": 1,
-      "title": "Complete Practical 4",
-      "completed": false
+      "_id": "651a2b3c4d5e6f7a8b9c0d1e",
+      "title": "Learn MongoDB",
+      "description": "Practice Mongoose schemas",
+      "completed": false,
+      "priority": "medium",
+      "createdAt": "2026-10-07T18:00:00.000Z"
     }
   ]
   ```
 
-### 2. Get Task by ID
-- **URL**: `GET /tasks/:id`
-- **Headers**: None
-- **Status Code**: `200 OK` (if found), `404 Not Found` (if not found), `400 Bad Request` (if invalid task ID)
-- **Response (200 OK)**:
+### 2. Create a Task
+* **Method**: `POST`
+* **URL**: `/tasks`
+* **Headers**: `Content-Type: application/json`
+* **Body**:
   ```json
   {
-    "id": 1,
-    "title": "Complete Practical 4",
-    "completed": false
+    "title": "   Learn MongoDB   ",
+    "description": "Practice Mongoose",
+    "priority": "high"
+  }
+  ```
+* **Status**: `201 Created`
+* **Response** (Note: `title` is trimmed automatically via pre-save hook):
+  ```json
+  {
+    "_id": "651a2b3c4d5e6f7a8b9c0d1e",
+    "title": "Learn MongoDB",
+    "description": "Practice Mongoose",
+    "completed": false,
+    "priority": "high",
+    "createdAt": "2026-10-07T18:00:00.000Z"
   }
   ```
 
-### 3. Create Task
-- **URL**: `POST /tasks`
-- **Headers**: `Content-Type: application/json`
-- **Body**:
+### 3. Get Task by ID
+* **Method**: `GET`
+* **URL**: `/tasks/:id`
+* **Status**: `200 OK` (if found), `404 Not Found` (if not found), `400 Bad Request` (if invalid ObjectId)
+* **Response (404 Not Found)**:
   ```json
   {
-    "title": "Learn Express"
-  }
-  ```
-- **Status Code**: `201 Created`, `415 Unsupported Media Type` (if missing/incorrect Content-Type), `400 Bad Request` (if title is invalid or empty)
-- **Response (201 Created)**:
-  ```json
-  {
-    "id": 2,
-    "title": "Learn Express",
-    "completed": false
+    "message": "Task not found"
   }
   ```
 
 ### 4. Update Task
-- **URL**: `PUT /tasks/:id`
-- **Headers**: `Content-Type: application/json`
-- **Body** (fields are optional, but at least one must be provided):
+* **Method**: `PUT`
+* **URL**: `/tasks/:id`
+* **Headers**: `Content-Type: application/json`
+* **Body**:
   ```json
   {
-    "title": "Learn Express Deeply",
-    "completed": true
+    "completed": true,
+    "priority": "low"
   }
   ```
-- **Status Code**: `200 OK`, `404 Not Found` (if not found), `400 Bad Request` (if ID format is invalid or validation fails), `415 Unsupported Media Type` (if missing/incorrect Content-Type)
-- **Response (200 OK)**:
-  ```json
-  {
-    "id": 2,
-    "title": "Learn Express Deeply",
-    "completed": true
-  }
-  ```
+* **Status**: `200 OK` (if found), `404 Not Found` (if not found), `400 Bad Request` (if validation fails)
 
 ### 5. Delete Task
-- **URL**: `DELETE /tasks/:id`
-- **Headers**: None
-- **Status Code**: `200 OK`, `404 Not Found` (if not found), `400 Bad Request` (if ID format is invalid)
-- **Response (200 OK)**:
+* **Method**: `DELETE`
+* **URL**: `/tasks/:id`
+* **Status**: `200 OK`
+* **Response**:
   ```json
   {
     "message": "Task deleted successfully"
   }
   ```
 
-## Middleware Features
-1. **Global Logger Middleware**: Logs request method, path, and ISO timestamp (e.g. `GET /tasks - 2026-08-03T10:30:00Z`).
-2. **Content-Type Validation**: Rejects `POST` and `PUT` requests without `Content-Type: application/json` header with `415 Unsupported Media Type`.
-3. **Route Validation**: Verifies that `:id` is a valid positive integer, returning `400 Bad Request` if invalid.
-4. **404 Not Found Handling**: Returns `404 Not Found` with a detailed JSON block containing success, status, message, HTTP method, path, and request timestamp.
-5. **Global Error Handling**: Intercepts unexpected errors and returns `500 Internal Server Error` with `{"error": "Something went wrong"}`.
+---
 
-## Postman Examples
+## Validation & Error Handling
 
-### Request: Create Task
-- **Method**: `POST`
-- **URL**: `http://localhost:3000/tasks`
-- **Headers**:
-  - `Content-Type: application/json`
-- **Body (raw JSON)**:
+* **Missing Title (`POST /tasks`)**:
+  Status `400 Bad Request`:
   ```json
   {
-    "title": "Master Node.js"
+    "error": "Validation failed",
+    "details": {
+      "title": "Title is required"
+    }
   }
   ```
 
-### Request: Update Task
-- **Method**: `PUT`
-- **URL**: `http://localhost:3000/tasks/1`
-- **Headers**:
-  - `Content-Type: application/json`
-- **Body (raw JSON)**:
+* **Invalid Priority (`POST /tasks` or `PUT /tasks/:id`)**:
+  Sending `{"priority": "urgent"}` returns Status `400 Bad Request`:
   ```json
   {
-    "completed": true
+    "error": "Validation failed",
+    "details": {
+      "priority": "urgent is not a valid priority. Allowed values: low, medium, high"
+    }
   }
   ```
+
+* **Invalid ObjectId (`GET /tasks/123`)**:
+  Status `400 Bad Request`:
+  ```json
+  {
+    "error": "Bad Request. Invalid Task ID format."
+  }
+  ```
+
+* **Non-JSON Media Type (`POST` / `PUT`)**:
+  Status `415 Unsupported Media Type`:
+  ```json
+  {
+    "error": "Unsupported Media Type. Content-Type must be application/json"
+  }
+  ```
+
+* **Undefined Route (`GET /invalid-route`)**:
+  Status `404 Not Found`:
+  ```json
+  {
+    "success": false,
+    "status": 404,
+    "message": "Route Not Found",
+    "method": "GET",
+    "path": "/invalid-route",
+    "timestamp": "2026-10-07T18:00:00.000Z"
+  }
+  ```
+
+---
+
+## Viewing Data in MongoDB Compass
+
+1. Open **MongoDB Compass**.
+2. Connect to: `mongodb://127.0.0.1:27017`
+3. In the left sidebar, find the database named `taskmanager`.
+4. Click on the `tasks` collection.
+5. You can view all saved task documents stored in MongoDB with their `_id`, `title`, `description`, `completed`, `priority`, and `createdAt` fields.
