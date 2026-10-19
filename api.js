@@ -52,6 +52,9 @@ async function handleResponse(response) {
         case 401:
           errorMessage = 'Unauthorized (401). Please check your credentials or log in again.';
           break;
+        case 403:
+          errorMessage = 'Forbidden (403). You do not have permission to access this resource.';
+          break;
         case 400:
           errorMessage = 'Bad request (400). Please verify the submitted data.';
           break;
@@ -83,7 +86,7 @@ async function apiRequest(endpoint, options = {}) {
     const response = await fetch(directUrl, options);
     return await handleResponse(response);
   } catch (err) {
-    // If it's an HTTP error (404, 500, etc.), do not retry; throw it directly
+    // If it's an HTTP error (404, 500, 403, etc.), throw it directly
     if (err.status) {
       throw err;
     }
@@ -109,15 +112,48 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 /* ==========================================================================
-   Tasks CRUD Endpoints
+   Tasks CRUD & Reporting Endpoints
    ========================================================================== */
 
 /**
- * GET /tasks — Fetch all tasks from MongoDB
+ * GET /tasks — Fetch tasks with optional filters
+ * @param {Object} params - { status, priority, search, startDate, endDate }
  * @returns {Promise<Array>} List of task documents
  */
-export async function getTasks() {
-  return await apiRequest('/tasks', {
+export async function getTasks(params = {}) {
+  const query = new URLSearchParams();
+  if (params.status && params.status !== 'all') query.append('status', params.status);
+  if (params.priority && params.priority !== 'all') query.append('priority', params.priority);
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+  if (params.startDate) query.append('startDate', params.startDate);
+  if (params.endDate) query.append('endDate', params.endDate);
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+
+  return await apiRequest(`/tasks${queryString}`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      ...getAuthHeader()
+    }
+  });
+}
+
+/**
+ * GET /tasks/reports — Fetch admin date-range task report & analytics
+ * @param {Object} params - { startDate, endDate, priority, status }
+ * @returns {Promise<Object>} Aggregated analytics report
+ */
+export async function getTaskReports(params = {}) {
+  const query = new URLSearchParams();
+  if (params.startDate) query.append('startDate', params.startDate);
+  if (params.endDate) query.append('endDate', params.endDate);
+  if (params.priority && params.priority !== 'all') query.append('priority', params.priority);
+  if (params.status && params.status !== 'all') query.append('status', params.status);
+
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+
+  return await apiRequest(`/tasks/reports${queryString}`, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
@@ -128,7 +164,7 @@ export async function getTasks() {
 
 /**
  * POST /tasks — Create a new task in MongoDB
- * @param {Object} task - { title, description, completed, priority }
+ * @param {Object} task - { title, description, completed, priority, dueDate }
  * @returns {Promise<Object>} Created task document
  */
 export async function createTask(task) {
@@ -177,12 +213,72 @@ export async function deleteTask(id) {
 }
 
 /* ==========================================================================
+   Workflow Rules Endpoints
+   ========================================================================== */
+
+/**
+ * GET /rules — Fetch all workflow rules
+ */
+export async function getWorkflowRules() {
+  return await apiRequest('/rules', {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+      ...getAuthHeader()
+    }
+  });
+}
+
+/**
+ * POST /rules — Create a new workflow rule
+ */
+export async function createWorkflowRule(rule) {
+  return await apiRequest('/rules', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(rule)
+  });
+}
+
+/**
+ * PUT /rules/:id — Update a workflow rule (e.g. toggle active)
+ */
+export async function updateWorkflowRule(id, updates) {
+  return await apiRequest(`/rules/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(updates)
+  });
+}
+
+/**
+ * DELETE /rules/:id — Delete a workflow rule
+ */
+export async function deleteWorkflowRule(id) {
+  return await apiRequest(`/rules/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Accept': 'application/json',
+      ...getAuthHeader()
+    }
+  });
+}
+
+/* ==========================================================================
    Authentication Endpoints
    ========================================================================== */
 
 /**
  * POST /auth/signup — Register new user
- * @param {Object} userData - { name, email, password }
+ * @param {Object} userData - { name, email, password, adminCode }
  */
 export async function signupUser(userData) {
   return await apiRequest('/auth/signup', {
