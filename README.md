@@ -235,8 +235,6 @@ task-manager-api-24AIML017/
 3. In the left sidebar, find the database named `taskmanager`.
 4. Click on the `tasks` collection.
 5. You can view all saved task documents stored in MongoDB with their `_id`, `title`, `description`, `completed`, `priority`, and `createdAt` fields.
-
-
 ---
 
 ## Practical 9: In-Memory Caching & Query Optimization
@@ -440,3 +438,4 @@ Client (Thunder Client / Frontend)
 
 3. **What happens if an `error` event is emitted without a registered error listener?**
    * **Answer**: In Node.js, `error` is a special event. If an `EventEmitter` emits an `'error'` event and there is **no listener** registered for `'error'`, Node.js treats it as an unhandled exception. It prints a stack trace and **immediately crashes the entire server process** (`process.exit(1)`). To prevent crashes, an application must always attach a listener using `taskEventEmitter.on('error', (err) => { ... })`.
+
