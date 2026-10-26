@@ -23,17 +23,23 @@ const taskSchema = new mongoose.Schema({
       message: '{VALUE} is not a valid priority. Allowed values: low, medium, high'
     },
     default: 'medium'
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  dueDate: {
+    type: Date
   }
 });
 
 // Pre-save hook to automatically trim whitespace from the title before saving
-taskSchema.pre('save', function (next) {
+
+taskSchema.pre('save', function () {
   if (this.title) {
     this.title = this.title.trim();
   }
-  if (typeof next === 'function') {
-    next();
-  }
 });
+
 
 module.exports = mongoose.model('Task', taskSchema);

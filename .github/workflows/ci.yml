@@ -1,0 +1,33 @@
+name: Task Manager CI Pipeline
+
+# Trigger this workflow automatically on every push to the main branch
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Build and Run Automated Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the code from GitHub repository
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js runtime (v20 LTS) with npm caching
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # Step 3: Install all required project dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Step 4: Run automated test suite (fails the pipeline if any test fails)
+      - name: Run Automated Tests
+        run: npm test
