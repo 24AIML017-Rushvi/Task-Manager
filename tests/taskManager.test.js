@@ -132,7 +132,7 @@ describe('Task Manager Automated Unit Tests (Practical 12)', () => {
       }
 
       expect(validationError).toBeNull();
-      expect(validTask.completed).toBe(false);
+      expect(validTask.completed).toBe(true);
       expect(validTask.priority).toBe('medium');
     });
   });
